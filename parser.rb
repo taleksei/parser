@@ -15,16 +15,15 @@ CATALOG_FILE_PATH = 'catalog.txt'
 RECORDS = 1000
 
 class Parser
-  #attr_accessor :rubik, :loaded, :buffer
 
   def initialize(root_link, rubik_file_path)
     @buffer = []
     @loaded = []
     @rubik = Rubik.new(root_link, rubik_file_path)
-		@buffer_product_count = 0
-		@loaded_product_count = 0
+    @buffer_product_count = 0
+    @loaded_product_count = 0
     @addition_product_count = 0
-		@head_group_count = 0
+    @head_group_count = 0
     load_catalog(CATALOG_FILE_PATH)
   end
 
@@ -34,7 +33,7 @@ class Parser
         while (line = f.gets)
           @loaded << Catalog_entity.new(line.gsub("\n",'').split("\t"))
         end
-				@loaded_product_count = @loaded.select { |i| i.type == 'product' }.count
+        @loaded_product_count = @loaded.select { |i| i.type == 'product' }.count
         puts "Previously loaded #{@loaded_product_count} products"
       end
     end
@@ -59,13 +58,13 @@ class Parser
       link = ROOT_LINK + rubik_group.url
       puts "Loading... #{rubik_group.name}"
 
-			count_before = @buffer_product_count
+      count_before = @buffer_product_count
 
       FileUtils.mkdir_p IMAGES_CATALOG
       #функция URI.encode(link) добавляет в конец строки лишние 4 символа
       search_products(URI.encode(link)[0..-4], catalog_group)
-	
-			puts " loaded #{@buffer_product_count - count_before} products"
+
+      puts " loaded #{@buffer_product_count - count_before} products"
 
     end
   rescue => exception
@@ -80,10 +79,10 @@ class Parser
       return if check_loaded_count?
 
       product = Catalog_entity.new(['product',
-				product_node.xpath('div[@class="productname"]/a').first.content,
-				catalog_group.name,
-				'',
-				product_node.xpath('div[@class="adtocartdiv"]/form/input[@name="product_id"]').first['value']])
+        product_node.xpath('div[@class="productname"]/a').first.content,
+        catalog_group.name,
+        '',
+        product_node.xpath('div[@class="adtocartdiv"]/form/input[@name="product_id"]').first['value']])
 
       unless @loaded.find { |item| item.id == product.id }
         product_image = product_node.xpath('div[@class="thumb_image"]/a/img').first
@@ -109,27 +108,27 @@ class Parser
     group_index = @loaded.index(catalog_group) 
     @loaded.insert(group_index + 1, product)
     @buffer << product
-		@buffer_product_count += 1 
-		@loaded_product_count += 1
+    @buffer_product_count += 1
+    @loaded_product_count += 1
   end
 
   def add_group_in_category(rubik_group)   
-		group = @loaded.find {|item| item.id == rubik_group.id}
+    group = @loaded.find {|item| item.id == rubik_group.id}
     unless group
-			type = case rubik_group.parent_id
-		    when '-1'
-					'root' 
-		    when '0'
-					@head_group_count += 1  
-					'group' 
-		    else
-					'subgroup'
-		    end
+      type = case rubik_group.parent_id
+        when '-1'
+          'root'
+        when '0'
+          @head_group_count += 1
+          'group'
+        else
+          'subgroup'
+        end
       group = Catalog_entity.new([type, rubik_group.name, '', '', rubik_group.id])
       @loaded << group
       @buffer << group
     end 
-		group
+    group
   end
 
   def print_statistic
@@ -137,7 +136,7 @@ class Parser
     
     puts "Loaded just now (product/categories): #{@buffer_product_count}/#{group_count(@buffer)}"
     
-    puts "Product count in head group: "
+    puts 'Product count in head group: '
     count_report
 
     image_statistic
@@ -161,25 +160,25 @@ class Parser
   end
 
   def count_report
-		count = 0
+    count = 0
     @loaded.each do |item| 
-			if item.type == 'group'
-				print ", count: #{count}" if count > 0
+      if item.type == 'group'
+        print ", count: #{count}" if count > 0
         puts ", #{((count/@loaded_product_count.to_f)*100).round}% of all"  if count > 0
-				print "  group: #{item.name}"		 
-				count = 0
-			else
-				count += 1 if item.type == 'product'
-			end 
-		end
+        print "  group: #{item.name}"
+        count = 0
+      else
+        count += 1 if item.type == 'product'
+      end
+    end
     print ", count: #{count}"
     puts ", #{((count/@loaded_product_count.to_f)*100).round}% of all"
-		puts "Product count: #{@loaded_product_count}"
+    puts "Product count: #{@loaded_product_count}"
   end
 
-	def check_loaded_count?
+  def check_loaded_count?
     @addition_product_count += 1 if @head_group_count > 1
-		@buffer_product_count >= RECORDS &&
+    @buffer_product_count >= RECORDS &&
       @head_group_count > 1 &&
         @addition_product_count >= 100
   end
