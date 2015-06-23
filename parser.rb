@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 require 'open-uri'
-require 'nokogiri'
+require 'mechanize'
 require 'fileutils'
 load 'rubik.rb'
 load 'catalog_entity.rb'
@@ -67,25 +67,26 @@ class Parser
       puts " loaded #{@buffer_product_count - count_before} products"
 
     end
-  rescue => exception
-    puts "Error! #{exception.inspect}"
+  #rescue => exception
+  #  puts "Error! #{exception.inspect}"
   end
 
   def search_products(link, catalog_group)
 
-    page = Nokogiri::HTML(open(link).read)
+    #page = Nokogiri::HTML(open(link).read)
+    mechanize = Mechanize.new
+    page = mechanize.get(link)
 
-    page.xpath('//div[@class="browseProductContainer"]').each do |product_node|
+    page.search('.browseProductContainer').each do |product_node|
       return if check_loaded_count?
-
       product = Catalog_entity.new(['product',
-        product_node.xpath('div[@class="productname"]/a').first.content,
+        product_node.search('.productname a').first.content,
         catalog_group.name,
         '',
-        product_node.xpath('div[@class="adtocartdiv"]/form/input[@name="product_id"]').first['value']])
+        product_node.at('input[name = "product_id"]')['value']])
 
       unless @loaded.find { |item| item.id == product.id }
-        product_image = product_node.xpath('div[@class="thumb_image"]/a/img').first
+        product_image = product_node.search('.thumb_image a img').first
         unless product_image['src'][-12..-1] == '/default.jpg'
           image_file_name = get_random_file_name(IMAGES_CATALOG, product_image['src'][-4..-1])
           open(product_image['src']) do |img|
@@ -98,9 +99,9 @@ class Parser
 
     end
 
-    link_to_next_page = page.xpath("//a[@class='pagenav'][contains(text(), 'Следующая')]")
-    if link_to_next_page.any? && !check_loaded_count?
-      search_products(ROOT_LINK + URI.encode(link_to_next_page.first['href']), catalog_group)
+    link_to_next_page = page.link_with(text: /.*Следующая.*/)
+    if link_to_next_page && !check_loaded_count?
+      search_products(ROOT_LINK + URI.encode(link_to_next_page.href), catalog_group)
     end
   end
 
