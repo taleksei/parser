@@ -12,9 +12,11 @@ ROOT_LINK = 'http://prostoudobno.ru'
 IMAGES_CATALOG = 'images'
 RUBIK_FILE_PATH = 'rubik.txt'
 CATALOG_FILE_PATH = 'catalog.txt'
-RECORDS = 1000
+RECORDS = 10
 
 class Parser
+
+  include Helper
 
   def initialize(root_link, rubik_file_path)
     @buffer = []
@@ -41,7 +43,7 @@ class Parser
 
   def parse_catalog
     parse_group(@rubik.load_group('0'))
-    save_to_file(CATALOG_FILE_PATH)
+    save_array_in_file(CATALOG_FILE_PATH, @loaded)
     print_statistic
   end
 
@@ -53,7 +55,7 @@ class Parser
     subgroups = @rubik.rubik_array.select {|item| item.parent_id == rubik_group.id }
     if subgroups.count > 0
       # на тесте использовал все группы, кроме первой(в ней много товаров, долгий тест)
-      subgroups.each { |subgroup| parse_group(subgroup) }# unless subgroup.id == '1' }
+      subgroups.each { |subgroup| parse_group(subgroup)  unless subgroup.id == '1' }
     else
       link = ROOT_LINK + rubik_group.url
       puts "Loading... #{rubik_group.name}"
@@ -142,12 +144,6 @@ class Parser
 
     image_statistic
     puts '*'*58
-  end
-
-  def save_to_file(file_name)
-    File.open(file_name, 'w') do |file|
-      @loaded.each { |item| file << item.to_s + "\n" }
-    end
   end
 
   def get_random_file_name(directory, ext)
